@@ -1,10 +1,16 @@
 class Entity:
-    def __init__(self, x, y, size, vx=0, vy=0):
+    def __init__(self, x, y, size, vx=0, vy=0, max_age=500):
         self.x = x
         self.y = y
         self.size = size
         self.vx = vx
         self.vy = vy
+        self.max_age = 500
+        self.age = 0
+
+    @property
+    def should_delete(self):
+        return self.age >= self.max_age
 
     @property
     def position(self):
@@ -22,3 +28,4 @@ class Entity:
     def update(self):
         self.x += self.vx
         self.y += self.vy
+        self.age += 1
