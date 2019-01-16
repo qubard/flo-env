@@ -1,8 +1,9 @@
 class Entity:
-    def __init__(self, x, y):
+    def __init__(self, x, y, size):
         self.x = x
         self.y = y
+        self.size = size
 
     @property
     def position(self):
-        return (self.x, self.y)
+        return (int(self.x), int(self.y))
