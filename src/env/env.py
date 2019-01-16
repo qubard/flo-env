@@ -1,7 +1,7 @@
 import pygame
 from src.entity import Entity
 
-from hashlib import sha256
+from hashlib import md5
 
 class Environment:
     def __init__(self, dimensions=(500, 500), render=True):
@@ -46,9 +46,9 @@ class Environment:
             self.player.y -= 1
 
     def state_hash(self):
-        m = sha256()
+        m = md5()
         m.update(self.background.get_buffer())
-        return m.digest()
+        return m.hexdigest()
 
     def run(self):
         #pygame.display.init()
@@ -69,4 +69,4 @@ class Environment:
             self.left = True
 
             #pygame.display.flip()
-            pygame.time.wait(1000)
+            pygame.time.wait(5)
