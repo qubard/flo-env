@@ -1,20 +1,7 @@
 import pygame
 from src.entity import Entity
 
-import base64
-
 from hashlib import sha256
-
-class Base64EncodabeBuffer(pygame.BufferProxy):
-
-    def __init__(self, buffer):
-        self.buffer = buffer
-
-    def __len__(self):
-        return self.buffer.length
-
-    def __getitem__(self, key):
-        return self.buffer.raw[key]
 
 class Environment:
     def __init__(self, dimensions=(500, 500), render=True):
