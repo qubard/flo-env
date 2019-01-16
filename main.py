@@ -1,5 +1,5 @@
 from src.env import Environment
 
-env = Environment()
+env = Environment(render=True, keyboard=True)
 
 env.run()

@@ -4,16 +4,21 @@ from src.entity import Entity
 from hashlib import md5
 
 class Environment:
-    def __init__(self, dimensions=(500, 500), render=True):
+    def __init__(self, dimensions=(500, 500), render=False, keyboard=False):
         self.dimensions = dimensions
         self.render = render
+        self.keyboard = keyboard
         self.screen = None
         self.shouldRun = True
+
         self.player = Entity(x=dimensions[0] / 2, y=dimensions[1] / 2, size=30)
         self.left = False
         self.right = False
         self.up = False
         self.down = False
+
+        self.projectiles = []
+
         self.valid_keys = { pygame.K_LEFT : 'left', pygame.K_RIGHT: 'right', pygame.K_DOWN: 'down', pygame.K_UP: 'up' }
 
     def handle_events(self):
@@ -50,23 +55,47 @@ class Environment:
         m.update(self.background.get_buffer())
         return m.hexdigest()
 
+    # Spawn an entity
+    def _spawn_projectile(self):
+        self.projectiles.append(Entity(x=50, y=50, size=25, vx=1, vy=1))
+
+    def _render_projectiles(self):
+        for entity in self.projectiles:
+            pygame.draw.rect(self.background, (0, 0, 0),
+                             (entity.position[0], entity.position[1], entity.size, entity.size))
+
+    def _move_projectiles(self):
+        for entity in self.projectiles:
+            entity.update()
+
     def run(self):
-        #pygame.display.init()
-        #self.screen = pygame.display.set_mode(self.dimensions)
+        if self.render:
+            pygame.display.init()
+            self.screen = pygame.display.set_mode(self.dimensions)
+
         self.background = pygame.Surface(self.dimensions)
         self.background.fill((255, 255, 255))
+
+        self._spawn_projectile()
+
         while self.shouldRun:
-            #self.handle_events()
-            #self.screen.blit(background, (0, 0))
+            if self.keyboard and self.render:
+                self.handle_events()
+
+            if self.render:
+                self.screen.blit(self.background, (0, 0))
+
             self.background.fill((255, 255, 255))
 
             pygame.draw.rect(self.background, (255, 0, 0), (self.player.position[0], self.player.position[1], self.player.size, self.player.size))
+
+            self._move_projectiles()
+            self._render_projectiles()
 
             self.handle_player_movement()
 
             print(self.state_hash())
 
-            self.left = True
-
-            #pygame.display.flip()
-            pygame.time.wait(5)
+            if self.render:
+                pygame.display.flip()
+            pygame.time.wait(25)
