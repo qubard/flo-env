@@ -48,16 +48,16 @@ class Environment:
 
     def handle_player_movement(self):
         if self.left:
-            self.player.x -= 5
+            self.player.x -= 1
 
         if self.right:
-            self.player.x += 5
+            self.player.x += 1
 
         if self.down:
-            self.player.y += 5
+            self.player.y += 1
 
         if self.up:
-            self.player.y -= 5
+            self.player.y -= 1
 
     def state_hash(self):
         m = md5()
@@ -84,6 +84,9 @@ class Environment:
         for entity in self.projectiles:
             entity.update()
 
+            if self.player and entity.collides(self.player):
+                self.player = None
+
             if entity.should_delete:
                 to_remove.append(entity)
 
@@ -107,14 +110,14 @@ class Environment:
 
             self.background.fill((255, 255, 255))
 
-            pygame.draw.rect(self.background, (255, 0, 0), (self.player.position[0], self.player.position[1], self.player.size, self.player.size))
+            if self.player:
+                self.handle_player_movement()
+                pygame.draw.rect(self.background, (255, 0, 0), (self.player.position[0], self.player.position[1], self.player.size, self.player.size))
 
             self._move_projectiles()
             self._render_projectiles()
 
             self._spawn_projectile()
-
-            self.handle_player_movement()
 
             print(self.state_hash())
 
