@@ -121,7 +121,7 @@ class Environment:
     # Spawn an entity
     def _spawn_projectile(self):
         if len(self.projectiles) < 200:
-            segment = self.spawn_segments[random.randint(0, 3)]
+            segment = random.choice(self.spawn_segments)
             pos = (random.uniform(segment[0][0], segment[1][0]), random.uniform(segment[0][1], segment[1][1]))
             angle = radians(random.randint(segment[2][0], segment[2][1]))
             dir = (cos(angle), sin(angle))
