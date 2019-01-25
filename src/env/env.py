@@ -19,7 +19,6 @@ ACTION_LOOKUP = {
 }
 
 
-
 class Environment:
     def __init__(self, dimensions=(50, 50), scale=1, render=False, keyboard=False, seed=0, fov_size=50):
         self.dimensions = (dimensions[0] * scale, dimensions[1] * scale)
@@ -48,14 +47,15 @@ class Environment:
 
         random.seed(seed)
 
-        self.spawn_segments = [ ((0, -self.player.size), (self.dimensions[0] - self.player.size, -self.player.size), (0, 180)),\
-                                ((-self.player.size, 0), (-self.player.size, self.dimensions[1] - self.player.size), (-90, 90)), \
-                                ((0, self.dimensions[1] + self.player.size), \
-                                 (self.dimensions[0] - self.player.size, self.dimensions[1] + self.player.size), (180, 360)), \
-                                ((self.dimensions[0] + self.player.size, 0), (self.dimensions[0] + self.player.size, \
-                                                                              self.dimensions[1] - self.player.size), (90, 180)) ]
+        self.spawn_segments = [
+            ((0, -self.player.size), (self.dimensions[0] - self.player.size, -self.player.size), (0, 180)), \
+            ((-self.player.size, 0), (-self.player.size, self.dimensions[1] - self.player.size), (-90, 90)), \
+            ((0, self.dimensions[1] + self.player.size), \
+             (self.dimensions[0] - self.player.size, self.dimensions[1] + self.player.size), (180, 360)), \
+            ((self.dimensions[0] + self.player.size, 0), (self.dimensions[0] + self.player.size, \
+                                                          self.dimensions[1] - self.player.size), (90, 180))]
 
-        self.valid_keys = { pygame.K_LEFT : 'left', pygame.K_RIGHT: 'right', pygame.K_DOWN: 'down', pygame.K_UP: 'up' }
+        self.valid_keys = {pygame.K_LEFT: 'left', pygame.K_RIGHT: 'right', pygame.K_DOWN: 'down', pygame.K_UP: 'up'}
 
         self._initialize_render()
 
@@ -72,6 +72,7 @@ class Environment:
         self.background.fill((255, 255, 255))
 
     """ Crop the original full-background image and return the raster buffer"""
+
     def _crop_fov(self):
         self.fov.blit(self.background, (0, 0), (self.dimensions[0] / 2 - self.fov_size, \
                                                 self.dimensions[1] / 2 - self.fov_size, \
@@ -84,7 +85,7 @@ class Environment:
 
     @property
     def raster_array(self):
-        self._crop_fov() # Update the fov buffer here (?)
+        self._crop_fov()  # Update the fov buffer here (?)
         return np.array(pygame.surfarray.array2d(self.fov)).flatten()
 
     def reset_keys(self):
@@ -116,6 +117,10 @@ class Environment:
         if self.up:
             self.player.y -= 1
 
+        if self.player.x >= self.dimensions[0] - self.player.size or self.player.x <= 0 \
+                or self.player.y >= self.dimensions[1] - self.player.size or self.player.y <= 0:
+            self._end_game()
+
     @property
     def hash(self):
         m = md5()
@@ -126,6 +131,7 @@ class Environment:
         if action in ACTION_LOOKUP:
             self._set_key(ACTION_LOOKUP[action], True)
         self._tick()
+        self.reset_keys()
 
     # Spawn an entity
     def _spawn_projectile(self):
@@ -133,18 +139,21 @@ class Environment:
             segment = random.choice(self.spawn_segments)
             pos = (random.uniform(segment[0][0], segment[1][0]), random.uniform(segment[0][1], segment[1][1]))
             angle = radians(random.randint(segment[2][0], segment[2][1]))
-            dir = (cos(angle), sin(angle))
-            self.projectiles.append(Entity(x=pos[0], y=pos[1], size=self.scale, vx=dir[0], vy=dir[1]))
+            self.projectiles.append(Entity(x=pos[0], y=pos[1], size=self.scale, vx=cos(angle), vy=sin(angle)))
 
     def render_entity(self, entity):
         if self.player:
             pygame.draw.rect(self.background, (0, 0, 0),
-                         (entity.position[0] - self.player.x + self.dimensions[0] / 2,
-                          entity.position[1] - self.player.y + self.dimensions[1] / 2, entity.size, entity.size))
+                             (entity.position[0] - self.player.x + self.dimensions[0] / 2,
+                              entity.position[1] - self.player.y + self.dimensions[1] / 2, entity.size, entity.size))
 
     def _render_projectiles(self):
         for entity in self.projectiles:
             self.render_entity(entity)
+
+    def _end_game(self):
+        self.finished = True
+        self.player = None
 
     def _move_projectiles(self):
         to_remove = []
@@ -152,8 +161,7 @@ class Environment:
             entity.update()
 
             if self.player and entity.collides(self.player):
-                self.player = None
-                self.finished = True
+                self._end_game()
 
             if entity.should_delete:
                 to_remove.append(entity)

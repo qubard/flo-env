@@ -10,9 +10,9 @@ from numpy import argmax
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
-        env = Environment(render=False, scale=10, fov_size=50)
+        env = Environment(render=False, scale=5, fov_size=25)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        while not env.finished and env.fitness < 3000: # 2000 fitness is about 2 minutes of play time
+        while not env.finished and env.fitness < 100000:
             arr = env.raster_array
             output = net.activate(arr)
             env.take_action(argmax(output)) # Take the action and update the game state (tick)
@@ -33,10 +33,10 @@ def run(config_file):
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(5))
+    p.add_reporter(neat.Checkpointer(1))
 
-    # Run for up to 300 generations.
-    winner = p.run(eval_genomes, 300)
+    # Run for up to 30 generations.
+    winner = p.run(eval_genomes, 30)
 
     # Display the winning genome.
     print('\nBest genome:\n{!s}'.format(winner))
@@ -44,9 +44,7 @@ def run(config_file):
     # Show output of the most fit genome against training data.
     print('\nOutput:')
     winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    for xi, xo in zip(xor_inputs, xor_outputs):
-        output = winner_net.activate(xi)
-        print("input {!r}, expected output {!r}, got {!r}".format(xi, xo, output))
+    print(winner_net)
 
     p = neat.Checkpointer.restore_checkpoint('checkpoints/neat-checkpoint')
     p.run(eval_genomes, 10)
