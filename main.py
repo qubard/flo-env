@@ -10,7 +10,7 @@ from numpy import argmax
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
-        env = Environment(render=False, scale=5, fov_size=25)
+        env = Environment(render=False, scale=1, fov_size=10)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         while not env.finished and env.fitness < 100000:
             arr = env.raster_array
@@ -35,19 +35,7 @@ def run(config_file):
     p.add_reporter(stats)
     p.add_reporter(neat.Checkpointer(1))
 
-    # Run for up to 30 generations.
-    winner = p.run(eval_genomes, 30)
-
-    # Display the winning genome.
-    print('\nBest genome:\n{!s}'.format(winner))
-
-    # Show output of the most fit genome against training data.
-    print('\nOutput:')
-    winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    print(winner_net)
-
-    p = neat.Checkpointer.restore_checkpoint('checkpoints/neat-checkpoint')
-    p.run(eval_genomes, 10)
+    winner = p.run(eval_genomes, 50)
 
 
 if __name__ == '__main__':

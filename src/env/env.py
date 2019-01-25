@@ -10,12 +10,21 @@ LEFT = 0
 RIGHT = 1
 DOWN = 2
 UP = 3
+LEFT_UP = 4
+RIGHT_UP = 5
+DOWN_RIGHT = 6
+DOWN_LEFT = 7
+#NOP = 8
 
 ACTION_LOOKUP = {
-    LEFT: pygame.K_LEFT,
-    RIGHT: pygame.K_RIGHT,
-    DOWN: pygame.K_DOWN,
-    UP: pygame.K_UP
+    LEFT: [pygame.K_LEFT],
+    RIGHT: [pygame.K_RIGHT],
+    DOWN: [pygame.K_DOWN],
+    UP: [pygame.K_UP],
+    LEFT_UP: [pygame.K_LEFT, pygame.K_UP],
+    RIGHT_UP: [pygame.K_RIGHT, pygame.K_UP],
+    DOWN_RIGHT: [pygame.K_DOWN, pygame.K_RIGHT],
+    DOWN_LEFT: [pygame.K_DOWN, pygame.K_LEFT]
 }
 
 
@@ -86,11 +95,17 @@ class Environment:
     @property
     def raster_array(self):
         self._crop_fov()  # Update the fov buffer here (?)
-        return np.array(pygame.surfarray.array2d(self.fov)).flatten()
+        arr = np.array(pygame.surfarray.array2d(self.fov), dtype=np.float32).flatten()
+        return arr / 16777215
+    # try dtype=np.int8
 
     def reset_keys(self):
         for key in self.valid_keys.values():
             setattr(self, key, False)
+
+    def _set_keys(self, keys, state):
+        for key in keys:
+            self._set_key(key, state)
 
     def _set_key(self, key, state):
         if key in self.valid_keys:
@@ -117,6 +132,7 @@ class Environment:
         if self.up:
             self.player.y -= 1
 
+    def _handle_out_of_bounds(self):
         if self.player.x >= self.dimensions[0] - self.player.size or self.player.x <= 0 \
                 or self.player.y >= self.dimensions[1] - self.player.size or self.player.y <= 0:
             self._end_game()
@@ -129,7 +145,7 @@ class Environment:
 
     def take_action(self, action):
         if action in ACTION_LOOKUP:
-            self._set_key(ACTION_LOOKUP[action], True)
+            self._set_keys(ACTION_LOOKUP[action], True)
         self._tick()
         self.reset_keys()
 
@@ -143,7 +159,7 @@ class Environment:
 
     def render_entity(self, entity):
         if self.player:
-            pygame.draw.rect(self.background, (0, 0, 0),
+            pygame.draw.rect(self.background, (255, 255, 255),
                              (entity.position[0] - self.player.x + self.dimensions[0] / 2,
                               entity.position[1] - self.player.y + self.dimensions[1] / 2, entity.size, entity.size))
 
@@ -170,13 +186,14 @@ class Environment:
             self.projectiles.remove(entity)
 
     def _tick(self):
-        self.background.fill((255, 255, 255))
+        self.background.fill((0, 0, 0))
 
         if self.player:
             self._handle_player_movement()
-            pygame.draw.rect(self.background, (255, 0, 0), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
+            pygame.draw.rect(self.background, (255, 255, 255), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
                                                             self.player.size, self.player.size))
             self.fitness += 1
+            self._handle_out_of_bounds()
 
         self._move_projectiles()
         self._render_projectiles()
@@ -189,7 +206,8 @@ class Environment:
                 self._handle_events()
 
             if self.render:
-                self.screen.blit(self.background, (0, 0))
+                self._crop_fov()
+                self.screen.blit(self.fov, (0, 0))
 
             self._tick()
 
