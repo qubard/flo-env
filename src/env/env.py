@@ -5,22 +5,41 @@ from hashlib import md5
 
 from math import radians, cos, sin
 
+LEFT = 0
+RIGHT = 1
+DOWN = 2
+UP = 3
+
+ACTION_LOOKUP = {
+    LEFT: pygame.K_LEFT,
+    RIGHT: pygame.K_RIGHT,
+    DOWN: pygame.K_DOWN,
+    UP: pygame.K_UP
+}
+
+
 class Environment:
     def __init__(self, dimensions=(50, 50), scale=1, render=False, keyboard=False, seed=0):
         self.dimensions = (dimensions[0] * scale, dimensions[1] * scale)
+
+        self.background = None
 
         self.scale = scale
 
         self.render = render
         self.keyboard = keyboard
         self.screen = None
-        self.shouldRun = True
+        self.finished = False
 
         self.player = Entity(x=self.dimensions[0] / 2, y=self.dimensions[1] / 2, size=scale)
         self.left = False
         self.right = False
         self.up = False
         self.down = False
+
+        self.fov_size = 50
+
+        self.fitness = 0
 
         self.projectiles = []
 
@@ -35,23 +54,47 @@ class Environment:
 
         self.valid_keys = { pygame.K_LEFT : 'left', pygame.K_RIGHT: 'right', pygame.K_DOWN: 'down', pygame.K_UP: 'up' }
 
-    def handle_events(self):
+        self._initialize_render()
+
+    def _handle_events(self):
         for event in pygame.event.get():
-            self.handle_event(event)
+            self._handle_event(event)
 
-    def handle_event(self, event):
+    def _initialize_render(self):
+        if self.render:
+            pygame.display.init()
+            self.screen = pygame.display.set_mode(self.dimensions)
+
+        self.background = pygame.Surface(self.dimensions)
+        self.background.fill((255, 255, 255))
+
+    """ Crop the original full-background image and return the raster """
+    @property
+    def raster(self):
+        fov = pygame.Surface((self.fov_size, self.fov_size))
+        fov.blit(self.background, (0, 0), (self.dimensions[0] / 2 - self.fov_size, \
+                                           self.dimensions[1] / 2 - self.fov_size, \
+                                           self.dimensions[0] / 2 + self.fov_size, \
+                                           self.dimensions[1] / 2 + self.fov_size))
+        return fov.get_buffer()
+
+    def reset_keys(self):
+        for key in self.valid_keys.values():
+            setattr(self, key, False)
+
+    def _set_key(self, key, state):
+        if key in self.valid_keys:
+            setattr(self, self.valid_keys[key], state)
+
+    def _handle_event(self, event):
         if event.type == pygame.QUIT:
-            self.shouldRun = False
+            self.finished = True
         elif event.type == pygame.KEYDOWN:
-            if event.key in self.valid_keys:
-                key = self.valid_keys[event.key]
-                setattr(self, key, True)
+            self._set_key(event.key, True)
         elif event.type == pygame.KEYUP:
-            if event.key in self.valid_keys:
-                key = self.valid_keys[event.key]
-                setattr(self, key, False)
+            self._set_key(event.key, False)
 
-    def handle_player_movement(self):
+    def _handle_player_movement(self):
         if self.left:
             self.player.x -= 1
 
@@ -64,10 +107,16 @@ class Environment:
         if self.up:
             self.player.y -= 1
 
-    def state_hash(self):
+    @property
+    def hash(self):
         m = md5()
-        m.update(self.background.get_buffer())
+        m.update(self.raster)
         return m.hexdigest()
+
+    def take_action(self, action):
+        if action in ACTION_LOOKUP:
+            self._set_key(ACTION_LOOKUP[action], True)
+        self._tick()
 
     # Spawn an entity
     def _spawn_projectile(self):
@@ -95,6 +144,7 @@ class Environment:
 
             if self.player and entity.collides(self.player):
                 self.player = None
+                self.finished = True
 
             if entity.should_delete:
                 to_remove.append(entity)
@@ -102,34 +152,30 @@ class Environment:
         for entity in to_remove:
             self.projectiles.remove(entity)
 
-    def run(self):
-        if self.render:
-            pygame.display.init()
-            self.screen = pygame.display.set_mode(self.dimensions)
-
-        self.background = pygame.Surface(self.dimensions)
+    def _tick(self):
         self.background.fill((255, 255, 255))
 
-        while self.shouldRun:
+        if self.player:
+            self._handle_player_movement()
+            pygame.draw.rect(self.background, (255, 0, 0), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
+                                                            self.player.size, self.player.size))
+            self.fitness += 1
+
+        self._move_projectiles()
+        self._render_projectiles()
+
+        self._spawn_projectile()
+
+    def run(self):
+        while not self.finished:
             if self.keyboard and self.render:
-                self.handle_events()
+                self._handle_events()
 
             if self.render:
                 self.screen.blit(self.background, (0, 0))
 
-            self.background.fill((255, 255, 255))
-
-            if self.player:
-                self.handle_player_movement()
-                pygame.draw.rect(self.background, (255, 0, 0), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
-                                                                self.player.size, self.player.size))
-
-            self._move_projectiles()
-            self._render_projectiles()
-
-            self._spawn_projectile()
+            self._tick()
 
             if self.render:
                 pygame.display.flip()
-
-            pygame.time.wait(25)
+                pygame.time.wait(25)

@@ -1,1 +1,3 @@
+future==0.17.1
+neat-python==0.92
 pygame==1.9.4
