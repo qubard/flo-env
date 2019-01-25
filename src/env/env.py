@@ -1,4 +1,5 @@
 import pygame, random
+import numpy as np
 from src.env.entity import Entity
 
 from hashlib import md5
@@ -18,8 +19,9 @@ ACTION_LOOKUP = {
 }
 
 
+
 class Environment:
-    def __init__(self, dimensions=(50, 50), scale=1, render=False, keyboard=False, seed=0):
+    def __init__(self, dimensions=(50, 50), scale=1, render=False, keyboard=False, seed=0, fov_size=50):
         self.dimensions = (dimensions[0] * scale, dimensions[1] * scale)
 
         self.background = None
@@ -37,7 +39,8 @@ class Environment:
         self.up = False
         self.down = False
 
-        self.fov_size = 50
+        self.fov_size = fov_size
+        self.fov = pygame.Surface((self.fov_size * 2, self.fov_size * 2))
 
         self.fitness = 0
 
@@ -68,15 +71,21 @@ class Environment:
         self.background = pygame.Surface(self.dimensions)
         self.background.fill((255, 255, 255))
 
-    """ Crop the original full-background image and return the raster """
+    """ Crop the original full-background image and return the raster buffer"""
+    def _crop_fov(self):
+        self.fov.blit(self.background, (0, 0), (self.dimensions[0] / 2 - self.fov_size, \
+                                                self.dimensions[1] / 2 - self.fov_size, \
+                                                self.fov_size * 2, \
+                                                self.fov_size * 2))
+
     @property
     def raster(self):
-        fov = pygame.Surface((self.fov_size, self.fov_size))
-        fov.blit(self.background, (0, 0), (self.dimensions[0] / 2 - self.fov_size, \
-                                           self.dimensions[1] / 2 - self.fov_size, \
-                                           self.dimensions[0] / 2 + self.fov_size, \
-                                           self.dimensions[1] / 2 + self.fov_size))
-        return fov.get_buffer()
+        return self.fov.get_buffer()
+
+    @property
+    def raster_array(self):
+        self._crop_fov() # Update the fov buffer here (?)
+        return np.array(pygame.surfarray.array2d(self.fov)).flatten()
 
     def reset_keys(self):
         for key in self.valid_keys.values():

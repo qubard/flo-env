@@ -4,21 +4,20 @@ from src.env import Environment
 import os
 import neat
 
+from numpy import argmax
 
-#env = Environment(render=True, scale=10, keyboard=True)
-
-#env.run()
 
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
-        env = Environment(render=False, scale=1)
+        env = Environment(render=False, scale=10, fov_size=50)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        while not env.finished:
-            output = net.activate(env.raster)
-            env.take_action(env.LEFT)
-            print("Finished")
-
+        while not env.finished and env.fitness < 3000: # 2000 fitness is about 2 minutes of play time
+            arr = env.raster_array
+            output = net.activate(arr)
+            env.take_action(argmax(output)) # Take the action and update the game state (tick)
+        genome.fitness = env.fitness
+        print("Fitness: %s" % genome.fitness)
 
 
 def run(config_file):
