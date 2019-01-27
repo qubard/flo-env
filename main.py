@@ -12,12 +12,11 @@ def eval_genomes(genomes, config):
         genome.fitness = 0
         env = Environment(render=False, scale=1, fov_size=10)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        while not env.finished and env.fitness < 100000:
+        while env.finished:
             arr = env.raster_array
             output = net.activate(arr)
             env.take_action(argmax(output)) # Take the action and update the game state (tick)
         genome.fitness = env.fitness
-        print("Fitness: %s" % genome.fitness)
 
 
 def run(config_file):
@@ -35,8 +34,7 @@ def run(config_file):
     p.add_reporter(stats)
     p.add_reporter(neat.Checkpointer(1))
 
-    winner = p.run(eval_genomes, 50)
-
+    winner = p.run(eval_genomes, 1000)
 
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation i

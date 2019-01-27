@@ -1,6 +1,6 @@
 from src.env import Environment
 
-env = Environment(render=False, scale=5)
+env = Environment(scale=1, fov_size=10)
 while not env.finished:
-    env.take_action(5)
+    env.take_action(9)
     print(env.finished, env.fitness, env.hash)

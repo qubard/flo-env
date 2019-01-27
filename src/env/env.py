@@ -6,6 +6,8 @@ from hashlib import md5
 
 from math import radians, cos, sin
 
+from src.env.util import scale_range
+
 LEFT = 0
 RIGHT = 1
 DOWN = 2
@@ -41,18 +43,22 @@ class Environment:
         self.screen = None
         self.finished = False
 
-        self.player = Entity(x=self.dimensions[0] / 2, y=self.dimensions[1] / 2, size=scale)
+        self.player = None
+
+        self._gen_player()
         self.left = False
         self.right = False
         self.up = False
         self.down = False
 
+        self.projectiles = []
+
+        self.age = 0
+
         self.fov_size = fov_size
         self.fov = pygame.Surface((self.fov_size * 2, self.fov_size * 2))
 
         self.fitness = 0
-
-        self.projectiles = []
 
         random.seed(seed)
 
@@ -71,6 +77,21 @@ class Environment:
     def _handle_events(self):
         for event in pygame.event.get():
             self._handle_event(event)
+
+    def _draw_rect(self, x, y, width, height):
+        pygame.draw.rect(self.background, (255, 255, 255),
+                         (x - self.player.x + self.dimensions[0] / 2,
+                          y - self.player.y + self.dimensions[1] / 2, width, height))
+
+    def _gen_player(self):
+        self.player = Entity(x=self.dimensions[0] / 2, y=self.dimensions[1] / 2, size=self.scale)
+
+    def _render_boundaries(self):
+        if self.player:
+            self._draw_rect(0, -self.player.size, self.dimensions[0], self.player.size)
+            self._draw_rect(0, self.dimensions[1], self.dimensions[0], self.player.size)
+            self._draw_rect(-self.player.size, 0, self.player.size, self.dimensions[1])
+            self._draw_rect(self.dimensions[0], 0, self.player.size, self.dimensions[1])
 
     def _initialize_render(self):
         if self.render:
@@ -97,7 +118,6 @@ class Environment:
         self._crop_fov()  # Update the fov buffer here (?)
         arr = np.array(pygame.surfarray.array2d(self.fov), dtype=np.float32).flatten()
         return arr / 16777215
-    # try dtype=np.int8
 
     def reset_keys(self):
         for key in self.valid_keys.values():
@@ -120,6 +140,9 @@ class Environment:
             self._set_key(event.key, False)
 
     def _handle_player_movement(self):
+        prevx = self.player.x
+        prevy = self.player.y
+
         if self.left:
             self.player.x -= 1
 
@@ -132,10 +155,14 @@ class Environment:
         if self.up:
             self.player.y -= 1
 
-    def _handle_out_of_bounds(self):
-        if self.player.x >= self.dimensions[0] - self.player.size or self.player.x <= 0 \
-                or self.player.y >= self.dimensions[1] - self.player.size or self.player.y <= 0:
-            self._end_game()
+        if self._out_of_bounds():
+            self.player.x = prevx
+            self.player.y = prevy
+
+
+    def _out_of_bounds(self):
+        return self.player.x > self.dimensions[0] - self.player.size or self.player.x <= 0 \
+                or self.player.y > self.dimensions[1] - self.player.size or self.player.y <= 0
 
     @property
     def hash(self):
@@ -167,17 +194,13 @@ class Environment:
         for entity in self.projectiles:
             self.render_entity(entity)
 
-    def _end_game(self):
-        self.finished = True
-        self.player = None
-
     def _move_projectiles(self):
         to_remove = []
         for entity in self.projectiles:
             entity.update()
 
             if self.player and entity.collides(self.player):
-                self._end_game()
+                self.fitness += 1
 
             if entity.should_delete:
                 to_remove.append(entity)
@@ -192,13 +215,18 @@ class Environment:
             self._handle_player_movement()
             pygame.draw.rect(self.background, (255, 255, 255), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
                                                             self.player.size, self.player.size))
-            self.fitness += 1
-            self._handle_out_of_bounds()
 
         self._move_projectiles()
         self._render_projectiles()
 
+        self._render_boundaries()
+
         self._spawn_projectile()
+
+        self.age += 1
+
+        if self.age > 10000:
+            self.finished = True
 
     def run(self):
         while not self.finished:
