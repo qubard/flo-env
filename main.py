@@ -10,9 +10,9 @@ from numpy import argmax
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
-        env = Environment(render=False, scale=1, fov_size=10)
+        env = Environment(render=False, scale=5, fov_size=25)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        while env.finished:
+        while not env.finished:
             arr = env.raster_array
             output = net.activate(arr)
             env.take_action(argmax(output)) # Take the action and update the game state (tick)
@@ -34,7 +34,7 @@ def run(config_file):
     p.add_reporter(stats)
     p.add_reporter(neat.Checkpointer(1))
 
-    winner = p.run(eval_genomes, 1000)
+    winner = p.run(eval_genomes, 30)
 
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation i

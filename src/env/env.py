@@ -6,8 +6,6 @@ from hashlib import md5
 
 from math import radians, cos, sin
 
-from src.env.util import scale_range
-
 LEFT = 0
 RIGHT = 1
 DOWN = 2
@@ -16,7 +14,7 @@ LEFT_UP = 4
 RIGHT_UP = 5
 DOWN_RIGHT = 6
 DOWN_LEFT = 7
-#NOP = 8
+# NOP = 8
 
 ACTION_LOOKUP = {
     LEFT: [pygame.K_LEFT],
@@ -140,8 +138,8 @@ class Environment:
             self._set_key(event.key, False)
 
     def _handle_player_movement(self):
-        prevx = self.player.x
-        prevy = self.player.y
+        prev_x = self.player.x
+        prev_y = self.player.y
 
         if self.left:
             self.player.x -= 1
@@ -156,8 +154,8 @@ class Environment:
             self.player.y -= 1
 
         if self._out_of_bounds():
-            self.player.x = prevx
-            self.player.y = prevy
+            self.player.x = prev_x
+            self.player.y = prev_y
 
 
     def _out_of_bounds(self):
@@ -178,7 +176,7 @@ class Environment:
 
     # Spawn an entity
     def _spawn_projectile(self):
-        if len(self.projectiles) < 200:
+        if len(self.projectiles) < 100:
             segment = random.choice(self.spawn_segments)
             pos = (random.uniform(segment[0][0], segment[1][0]), random.uniform(segment[0][1], segment[1][1]))
             angle = radians(random.randint(segment[2][0], segment[2][1]))
@@ -225,7 +223,7 @@ class Environment:
 
         self.age += 1
 
-        if self.age > 10000:
+        if self.age > 681:
             self.finished = True
 
     def run(self):
