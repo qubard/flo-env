@@ -29,10 +29,12 @@ ACTION_LOOKUP = {
 
 
 class Environment:
-    def __init__(self, scale=1, render=False, keyboard=False, seed=0, fov_size=50):
+    def __init__(self, scale=1, max_projectiles=200, render=False, keyboard=False, seed=0, fov_size=50):
         self.dimensions = (fov_size * 2, fov_size * 2)
 
         self.background = None
+
+        self.max_projectiles = max_projectiles
 
         self.scale = scale
 
@@ -176,7 +178,7 @@ class Environment:
 
     # Spawn an entity
     def _spawn_projectile(self):
-        if len(self.projectiles) < 200:
+        if len(self.projectiles) < self.max_projectiles:
             segment = random.choice(self.spawn_segments)
             pos = (random.uniform(segment[0][0], segment[1][0]), random.uniform(segment[0][1], segment[1][1]))
             angle = radians(random.randint(segment[2][0], segment[2][1]))
