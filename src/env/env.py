@@ -29,8 +29,8 @@ ACTION_LOOKUP = {
 
 
 class Environment:
-    def __init__(self, dimensions=(50, 50), scale=1, render=False, keyboard=False, seed=0, fov_size=50):
-        self.dimensions = (dimensions[0] * scale, dimensions[1] * scale)
+    def __init__(self, scale=1, render=False, keyboard=False, seed=0, fov_size=50):
+        self.dimensions = (fov_size * 2, fov_size * 2)
 
         self.background = None
 
@@ -176,13 +176,13 @@ class Environment:
 
     # Spawn an entity
     def _spawn_projectile(self):
-        if len(self.projectiles) < 100:
+        if len(self.projectiles) < 200:
             segment = random.choice(self.spawn_segments)
             pos = (random.uniform(segment[0][0], segment[1][0]), random.uniform(segment[0][1], segment[1][1]))
             angle = radians(random.randint(segment[2][0], segment[2][1]))
             self.projectiles.append(Entity(x=pos[0], y=pos[1], size=self.scale, vx=cos(angle), vy=sin(angle)))
 
-    def render_entity(self, entity):
+    def _render_entity(self, entity):
         if self.player:
             pygame.draw.rect(self.background, (255, 255, 255),
                              (entity.position[0] - self.player.x + self.dimensions[0] / 2,
@@ -190,7 +190,7 @@ class Environment:
 
     def _render_projectiles(self):
         for entity in self.projectiles:
-            self.render_entity(entity)
+            self._render_entity(entity)
 
     def _move_projectiles(self):
         to_remove = []
@@ -198,7 +198,8 @@ class Environment:
             entity.update()
 
             if self.player and entity.collides(self.player):
-                self.fitness += 1
+                self.finished = True
+                self.player = None
 
             if entity.should_delete:
                 to_remove.append(entity)
@@ -222,9 +223,7 @@ class Environment:
         self._spawn_projectile()
 
         self.age += 1
-
-        if self.age > 681:
-            self.finished = True
+        self.fitness += 1
 
     def run(self):
         while not self.finished:

@@ -4,18 +4,25 @@ from src.env import Environment
 import os
 import neat
 
-from numpy import argmax
+import numpy as np
 
+from skimage.measure import block_reduce
 
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
-        env = Environment(render=False, scale=5, fov_size=25)
+        fov = 100
+        env = Environment(render=False, scale=5, fov_size=fov)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
+
         while not env.finished:
-            arr = env.raster_array
-            output = net.activate(arr)
-            env.take_action(argmax(output)) # Take the action and update the game state (tick)
+            raster = np.reshape(env.raster_array, (fov * 2, fov * 2))
+
+            # 40,000 = 200x200 needs to be reduced by 5x5 to size 1600 (40x40)
+            raster = block_reduce(raster, block_size=(5, 5), func=np.mean)
+            output = net.activate(raster.flatten())
+            env.take_action(np.argmax(output)) # Take the action and update the game state (tick)
+        print("Fitness: %s" % env.fitness)
         genome.fitness = env.fitness
 
 
