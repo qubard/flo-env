@@ -6,13 +6,17 @@ import neat
 
 import numpy as np
 
+import random
+
 from skimage.measure import block_reduce
 
 def eval_genomes(genomes, config):
+    genome_seed = random.randrange(0, 99999999)
+    print("Selected seed", genome_seed)
     for genome_id, genome in genomes:
         genome.fitness = 0
         fov = 100
-        env = Environment(render=False, scale=5, fov_size=fov)
+        env = Environment(render=False, max_projectiles=100, seed=genome_seed, scale=5, fov_size=fov)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
         while not env.finished:
@@ -22,7 +26,6 @@ def eval_genomes(genomes, config):
             raster = block_reduce(raster, block_size=(5, 5), func=np.mean)
             output = net.activate(raster.flatten())
             env.take_action(np.argmax(output)) # Take the action and update the game state (tick)
-        print("Fitness: %s" % env.fitness)
         genome.fitness = env.fitness
 
 

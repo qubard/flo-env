@@ -4,7 +4,7 @@ from src.env.entity import Entity
 
 from hashlib import md5
 
-from math import radians, cos, sin
+from math import radians, cos, sin, sqrt
 
 LEFT = 0
 RIGHT = 1
@@ -37,6 +37,8 @@ class Environment:
         self.max_projectiles = max_projectiles
 
         self.scale = scale
+
+        self.fov_length = sqrt((2 * fov_size) ** 2)
 
         self.render = render
         self.keyboard = keyboard
@@ -85,6 +87,15 @@ class Environment:
 
     def _gen_player(self):
         self.player = Entity(x=self.dimensions[0] / 2, y=self.dimensions[1] / 2, size=self.scale)
+
+    def _entities_nearby(self):
+        for entity in self.projectiles:
+            dx = self.player.x - entity.x
+            dy = self.player.y - entity.y
+            dist = sqrt(dx**2 + dy**2)
+            if dist <= self.fov_length:
+                return True
+        return False
 
     def _render_boundaries(self):
         if self.player:
@@ -225,7 +236,9 @@ class Environment:
         self._spawn_projectile()
 
         self.age += 1
-        self.fitness += 1
+
+        if self.player and self._entities_nearby():
+            self.fitness += 1
 
     def run(self):
         while not self.finished:
