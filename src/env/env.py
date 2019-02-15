@@ -170,6 +170,12 @@ class Environment:
             self.player.x = prev_x
             self.player.y = prev_y
 
+        for entity in self.projectiles:
+            if entity.collides(self.player):
+                return True
+
+        return False
+
 
     def _out_of_bounds(self):
         return self.player.x > self.dimensions[0] - self.player.size or self.player.x <= 0 \
@@ -186,6 +192,21 @@ class Environment:
             self._set_keys(ACTION_LOOKUP[action], True)
         self._tick()
         self.reset_keys()
+
+    def step(self, action):
+        if action in ACTION_LOOKUP:
+            self._set_keys(ACTION_LOOKUP[action], True)
+        collides = self._tick()
+        self.reset_keys()
+
+        if collides:
+            reward = -20
+        else:
+            reward = 1
+
+        return self.raster_array, reward # (state, reward)
+
+
 
     # Spawn an entity
     def _spawn_projectile(self):
@@ -207,12 +228,9 @@ class Environment:
 
     def _move_projectiles(self):
         to_remove = []
+
         for entity in self.projectiles:
             entity.update()
-
-            if self.player and entity.collides(self.player):
-                self.finished = True
-                self.player = None
 
             if entity.should_delete:
                 to_remove.append(entity)
@@ -223,8 +241,10 @@ class Environment:
     def _tick(self):
         self.background.fill((0, 0, 0))
 
+        collides = False
+
         if self.player:
-            self._handle_player_movement()
+            collides = self._handle_player_movement()
             pygame.draw.rect(self.background, (255, 255, 255), (self.dimensions[0] / 2, self.dimensions[1] / 2, \
                                                             self.player.size, self.player.size))
 
@@ -239,6 +259,8 @@ class Environment:
 
         if self.player and self._entities_nearby():
             self.fitness += 1
+
+        return collides
 
     def run(self):
         while not self.finished:
